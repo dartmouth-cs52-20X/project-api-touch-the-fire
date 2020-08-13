@@ -3,6 +3,9 @@ import bodyParser from 'body-parser';
 import cors from 'cors';
 import path from 'path';
 import morgan from 'morgan';
+import socketio from 'socket.io';
+import Constants from './constants/constants';
+import Game from './game';
 
 // initialize
 const app = express();
@@ -16,9 +19,6 @@ app.use(morgan('dev'));
 // enable only if you want templating
 app.set('view engine', 'ejs');
 
-// enable only if you want static assets from folder static
-app.use(express.static('static'));
-
 // this just allows us to render ejs from the ../app/views directory
 app.set('views', path.join(__dirname, '../src/views'));
 
@@ -27,15 +27,41 @@ app.use(bodyParser.urlencoded({ extended: true }));
 app.use(bodyParser.json());
 
 // additional init stuff should go before hitting the routing
+app.use(express.static('static'));
 
 // default index route
 app.get('/', (req, res) => {
   res.send('hi');
 });
 
-// START THE SERVER
-// =============================================================================
+// Listen on port
 const port = process.env.PORT || 9090;
-app.listen(port);
+const server = app.listen(port);
+console.log(`Server listening on port ${port}`);
 
-console.log(`listening on: ${port}`);
+// Setup socket.io
+const io = socketio(server);
+
+// Listen for socket.io connections
+io.on('connection', (socket) => {
+  console.log('Player connected!', socket.id);
+
+  socket.on(Constants.MSG_TYPES.JOIN_GAME, joinGame);
+  socket.on(Constants.MSG_TYPES.INPUT, handleInput);
+  socket.on('disconnect', onDisconnect);
+});
+
+// Setup the Game
+const game = new Game();
+
+function joinGame(username) {
+  game.addPlayer(this, username);
+}
+
+function handleInput(dir) {
+  game.handleInput(this, dir);
+}
+
+function onDisconnect() {
+  game.removePlayer(this);
+}

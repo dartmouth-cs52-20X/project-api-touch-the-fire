@@ -1,1 +1,9 @@
-# can serve static files from this folder
+* {
+  padding: 0;
+  margin: 0;
+  box-sizing: border-box;
+}
+
+.hidden {
+  display: none;
+}
