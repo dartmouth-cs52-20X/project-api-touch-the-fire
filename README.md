@@ -24,6 +24,8 @@ The first team to score 3 points wins the game.
     * Used to handle multiple requests server-side
 * Webpack
     * Used for compilation
+* Phaser (Potentially)
+    *Library to handle game function
 
 ## Setup
 
