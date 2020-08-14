@@ -56,10 +56,11 @@ class Game {
 
     // Send a game update to each player every other time
     if (this.shouldSendUpdate) {
+      const leaderboard = this.getLeaderboard();
       Object.keys(this.sockets).forEach((playerID) => {
         const socket = this.sockets[playerID];
         const player = this.players[playerID];
-        socket.emit(Constants.MSG_TYPES.GAME_UPDATE, this.createUpdate(player));
+        socket.emit(Constants.MSG_TYPES.GAME_UPDATE, this.createUpdate(player, leaderboard));
       });
       this.shouldSendUpdate = false;
     } else {
@@ -67,7 +68,15 @@ class Game {
     }
   }
 
-  createUpdate(player) {
+  // Returns the top 5 players
+  getLeaderboard() {
+    return Object.values(this.players)
+      .sort((p1, p2) => { return p2.score - p1.score; })
+      .slice(0, 5)
+      .map((p) => { return { username: p.username, score: Math.round(p.score) }; });
+  }
+
+  createUpdate(player, leaderboard) {
     const nearbyPlayers = Object.values(this.players).filter(
       (p) => { return p !== player && p.distanceTo(player) <= Constants.MAP_SIZE / 2; },
     );
@@ -76,6 +85,7 @@ class Game {
       t: Date.now(),
       me: player.serializeForUpdate(),
       others: nearbyPlayers.map((p) => { return p.serializeForUpdate(); }),
+      leaderboard,
     };
   }
 }

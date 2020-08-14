@@ -5,6 +5,7 @@ class Player extends ObjectClass {
   constructor(id, username, x, y) {
     super(id, x, y, Math.random() * 2 * Math.PI, Constants.PLAYER_SPEED);
     this.username = username;
+    this.score = 0;
   }
 
   // Returns a newly created bullet, or null.
