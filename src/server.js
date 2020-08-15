@@ -4,8 +4,8 @@ import cors from 'cors';
 import path from 'path';
 import morgan from 'morgan';
 import socketio from 'socket.io';
-import Constants from './constants/constants';
-import Game from './game';
+import Constants from './game/constants/constants';
+import Game from './game/game';
 
 // initialize
 const app = express();
@@ -45,7 +45,7 @@ const io = socketio(server);
 // Listen for socket.io connections
 io.on('connection', (socket) => {
   console.log('Player connected!', socket.id);
-
+  socket.emit(Constants.MSG_TYPES.CHAT, 'Hello World');
   socket.on(Constants.MSG_TYPES.JOIN_GAME, joinGame);
   socket.on(Constants.MSG_TYPES.INPUT, handleInput);
   socket.on('disconnect', onDisconnect);
