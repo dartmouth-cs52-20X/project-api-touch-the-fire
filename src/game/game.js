@@ -24,9 +24,12 @@ class Game {
     delete this.players[socket.id];
   }
 
-  handleInput(socket, dir) {
+  handleInput(socket, dir, move) {
     if (this.players[socket.id]) {
-      this.players[socket.id].setDirection(dir);
+      // called by server js
+
+      // calls upon object js
+      this.players[socket.id].setDirection(dir, move);
     }
   }
 

@@ -25,6 +25,7 @@ class Player extends ObjectClass {
     return {
       ...(super.serializeForUpdate()),
       direction: this.direction,
+      move: this.move,
     };
   }
 }
