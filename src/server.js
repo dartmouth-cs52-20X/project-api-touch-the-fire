@@ -58,8 +58,9 @@ function joinGame(username) {
   game.addPlayer(this, username);
 }
 
-function handleInput(dir) {
-  game.handleInput(this, dir);
+function handleInput(packageDirMove) {
+  // eslint-disable-next-line no-undef
+  game.handleInput(this, packageDirMove.dr, packageDirMove.mv);
 }
 
 function onDisconnect() {
