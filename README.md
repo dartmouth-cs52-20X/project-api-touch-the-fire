@@ -1,7 +1,8 @@
-# Touch the Fire
+# starter express app template
 
-![Team Photo](Insert a Team Photo URL here)
-[*how?*](https://help.github.com/articles/about-readmes/#relative-links-and-image-paths-in-readme-files)
+* node with babel
+* expressjs
+* airbnb eslint rules
 
 Touch the Fire is a WASD multiplayer game with two teams of 3-5 players (students and defenders). The goal of the students is to get one player to touch the fire, and the goal of the defenders is to prevent anyone from touching the fire. 
 
