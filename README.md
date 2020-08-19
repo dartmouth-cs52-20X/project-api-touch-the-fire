@@ -1,8 +1,5 @@
-# starter express app template
-
-* node with babel
-* expressjs
-* airbnb eslint rules
+# Touch the Fire
+![Team Photo](Insert a Team Photo URL here)
 
 Touch the Fire is a WASD multiplayer game with two teams of 3-5 players (students and defenders). The goal of the students is to get one player to touch the fire, and the goal of the defenders is to prevent anyone from touching the fire. 
 
@@ -34,14 +31,18 @@ This project requires both the code in this repo and the [client repo](https://g
 
 ### Client Repo
 
-The game is hosted on port 8080.
+Find our dev site [here.](http://touch-the-fire.surge.sh/)
+
+The game is hosted locally on port 8080.
 
 - `yarn install`
 - `yarn start`
 
 ### Server Repo
 
-The server is hosted on port 9090.
+Find our dev server [here.](https://touch-the-fire-api.herokuapp.com/)
+
+The server is hosted locally on port 9090.
 
 - `yarn install`
 - `yarn dev`
@@ -50,7 +51,7 @@ The server is hosted on port 9090.
 
 ### Client Repo
 
-- `yarn deploy`
+To push to the dev site, simply push to `origin master`. Travis takes care of the rest.
 
 ### Server Repo
 
