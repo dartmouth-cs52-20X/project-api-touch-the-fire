@@ -6,6 +6,8 @@ import morgan from 'morgan';
 import socketio from 'socket.io';
 import http from 'http';
 
+import * as ChatMessages from './controllers/chat_message_controller';
+
 // initialize
 const app = express();
 const server = http.createServer(app);
@@ -65,6 +67,31 @@ io.on('connection', (socket) => {
     io.emit('disconnect', socket.id);
     console.log('user disconnected');
   });
+
+  // Handling chat
+  // For now, chat messages will carry over from game to game --> need to create/call a method to delete all chatMessages from game/round over
+  // On first connect, emit messages to player
+  ChatMessages.getChatMessages().then((result) => {
+    socket.emit('chatMessages', result);
+  });
+  // method to push chat messages to all players
+  const pushChatMessages = () => {
+    ChatMessages.getChatMessages().then((result) => {
+      io.sockets.emit('chatMessages', result);
+    });
+  };
+  // event listener to handle creating a new chat message
+  socket.on('createChatMessage', (fields) => {
+    // Call the createChatMessage function
+    ChatMessages.createChatMessage(fields).then((result) => {
+      // Then push all the chatMessages (including the newly created one) to all players
+      pushChatMessages();
+    }).catch((error) => {
+      console.log(error);
+      socket.emit('error', 'create failed');
+    });
+  });
+
   // when a player moves, update the player data
   socket.on('playerMovement', (movementData) => {
     players[socket.id].x = movementData.x;
