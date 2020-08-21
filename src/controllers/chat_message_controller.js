@@ -16,12 +16,6 @@ export const createChatMessage = (fields) => {
   return chatMessage.save();
 };
 
-// Taken from the websocket ec sa (http://cs52.me/assignments/sa/websockets/)
 export const getChatMessages = () => {
-  return ChatMessage.find({}).then((chatMessages) => {
-    return chatMessages.reduce((result, item) => {
-      result[item.id] = item;
-      return result;
-    }, {});
-  });
+  return ChatMessage.find({});
 };

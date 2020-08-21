@@ -5,6 +5,7 @@ import path from 'path';
 import morgan from 'morgan';
 import socketio from 'socket.io';
 import http from 'http';
+import mongoose from 'mongoose';
 
 import * as ChatMessages from './controllers/chat_message_controller';
 
@@ -13,6 +14,7 @@ const app = express();
 const server = http.createServer(app);
 const io = socketio(server);
 const players = {};
+let student = true;
 const star = {
   x: Math.floor(Math.random() * 700) + 50,
   y: Math.floor(Math.random() * 500) + 50,
@@ -42,10 +44,17 @@ app.use(bodyParser.json());
 
 // additional init stuff should go before hitting the routing
 
+// DB setup
+const mongoURI = process.MONGODB_URI || 'mongodb://localhost/chat_db';
+mongoose.connect(mongoURI);
+mongoose.Promise = global.Promise;
+
 // default index route
 app.get('/', (req, res) => {
   res.send('hi');
 });
+
+/* Starting template was adapted from phaser intro tutorial at https://phasertutorials.com/creating-a-simple-multiplayer-game-in-phaser-3-with-an-authoritative-server-part-1/ */
 
 io.on('connection', (socket) => {
   console.log('a user connected');
@@ -54,8 +63,9 @@ io.on('connection', (socket) => {
     x: Math.floor(Math.random() * 700) + 50,
     y: Math.floor(Math.random() * 500) + 50,
     playerId: socket.id,
-    team: (Math.floor(Math.random() * 2) === 0) ? 'red' : 'blue',
+    team: (student === true) ? 'red' : 'blue',
   };
+  student = !student;
   // send the players object to the new player
   socket.emit('currentPlayers', players);
   // update all other players of the new player
@@ -70,18 +80,23 @@ io.on('connection', (socket) => {
 
   // Handling chat
   // For now, chat messages will carry over from game to game --> need to create/call a method to delete all chatMessages from game/round over
-  // On first connect, emit messages to player
+  // On first connection, send chats to player
   ChatMessages.getChatMessages().then((result) => {
+    console.log('initial chat messages sent');
     socket.emit('chatMessages', result);
   });
   // method to push chat messages to all players
   const pushChatMessages = () => {
+    console.log('getting chat messages');
     ChatMessages.getChatMessages().then((result) => {
+      console.log('sent chat messages');
+      console.log(result);
       io.sockets.emit('chatMessages', result);
     });
   };
   // event listener to handle creating a new chat message
   socket.on('createChatMessage', (fields) => {
+    console.log('chat received');
     // Call the createChatMessage function
     ChatMessages.createChatMessage(fields).then((result) => {
       // Then push all the chatMessages (including the newly created one) to all players
@@ -114,7 +129,7 @@ io.on('connection', (socket) => {
 });
 // START THE SERVER
 // =============================================================================
-const port = process.env.PORT || 9090;
+const port = process.env.PORT || '9090';
 server.listen(port);
 
 console.log(`listening on: ${port}`);
