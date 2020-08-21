@@ -19,3 +19,7 @@ export const createChatMessage = (fields) => {
 export const getChatMessages = () => {
   return ChatMessage.find({});
 };
+
+export const clearChat = () => {
+  return ChatMessage.deleteMany({});
+};
