@@ -55,7 +55,7 @@ app.use(bodyParser.json());
 // additional init stuff should go before hitting the routing
 
 // DB setup
-const mongoURI = process.MONGODB_URI || 'mongodb://localhost/chat_db';
+const mongoURI = process.env.MONGODB_URI || 'mongodb://localhost/chat_db';
 mongoose.connect(mongoURI);
 mongoose.Promise = global.Promise;
 
