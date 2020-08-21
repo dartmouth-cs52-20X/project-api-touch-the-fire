@@ -177,7 +177,7 @@ io.on('connection', (socket) => {
 });
 // START THE SERVER
 // =============================================================================
-const port = process.env.PORT || '9090';
+const port = process.env.PORT || 9090;
 server.listen(port);
 
 console.log(`listening on: ${port}`);
