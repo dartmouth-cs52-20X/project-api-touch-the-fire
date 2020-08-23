@@ -9,8 +9,6 @@ import { Map } from 'immutable';
 import socketio from 'socket.io';
 import http from 'http';
 import mongoose from 'mongoose';
-import throttle from 'lodash.throttle';
-import debounce from 'lodash.debounce';
 
 import * as ChatMessages from './controllers/chat_message_controller';
 import database from './services/datastore';
@@ -78,16 +76,6 @@ function scoreIncrease(fId, user) {
 io.on('connection', (socket) => {
   console.log('a user connected');
 
-  let emitToSelf = (title, object) => {
-    socket.emit(title, object);
-  };
-  emitToSelf = debounce(emitToSelf, 200);
-
-  let emitToOthers = (title, object) => {
-    socket.broadcast.emit(title, object);
-  };
-  emitToOthers = throttle(emitToOthers, 25);
-
   let user = {
     initial: true, username: '', score: -1, socketId: socket.id,
   };
@@ -118,11 +106,11 @@ io.on('connection', (socket) => {
   };
   student = !student;
   // send the players object to the new player
-  emitToSelf('currentPlayers', players);
+  socket.emit('currentPlayers', players);
   // update all other players of the new player
-  emitToOthers('newPlayer', players[socket.id]);
-  emitToSelf('starLocation', star);
-  emitToSelf('scoreUpdate', scores);
+  socket.broadcast.emit('newPlayer', players[socket.id]);
+  socket.emit('starLocation', star);
+  socket.emit('scoreUpdate', scores);
   socket.on('disconnect', () => {
     delete players[socket.id];
     io.emit('disconnect', socket.id);
@@ -134,7 +122,7 @@ io.on('connection', (socket) => {
   // On first connection, send chats to player
   ChatMessages.getChatMessages().then((result) => {
     console.log('initial chat messages sent');
-    emitToSelf('chatMessages', result);
+    socket.emit('chatMessages', result);
   });
   // method to push chat messages to all players
   const pushChatMessages = () => {
@@ -154,7 +142,7 @@ io.on('connection', (socket) => {
       pushChatMessages();
     }).catch((error) => {
       console.log(error);
-      emitToSelf('error', 'create failed');
+      socket.emit('error', 'create failed');
     });
   });
   // event listener to clear the chat
@@ -164,7 +152,7 @@ io.on('connection', (socket) => {
       pushChatMessages();
     }).catch((error) => {
       console.log(error);
-      emitToSelf('error', 'clear failed');
+      socket.emit('error', 'clear failed');
     });
   });
 
@@ -174,7 +162,7 @@ io.on('connection', (socket) => {
     players[socket.id].y = movementData.y;
     players[socket.id].rotation = movementData.rotation;
     // emit a message to all players about the player that moved
-    emitToOthers('playerMoved', players[socket.id]);
+    socket.broadcast.emit('playerMoved', players[socket.id]);
   });
   socket.on('starCollected', () => {
     if (players[socket.id].team === 'red') {
