@@ -92,20 +92,24 @@ io.on('connection', (socket) => {
   };
   let fId = '';
   socket.on('username', (Username) => {
+    console.log(Username);
     userMap.entrySeq().forEach((element) => {
       const n = Username.localeCompare(element[1].username);
       if (n === 0) {
         fId = element[0];
         user = element[1];
+        console.log(fId, user);
       }
     });
     if (user.initial === true) {
       user = {
         initial: false, username: Username, score: 0, socketId: socket.id,
       };
+      console.log(user);
       const ref = database.push(user);
       // eslint-disable-next-line no-unused-vars
       fId = ref.key;
+      console.log(fId);
     }
   });
   players[socket.id] = {
