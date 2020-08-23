@@ -70,6 +70,7 @@ app.get('/', (req, res) => {
 function scoreIncrease(fId, user) {
   user.score += 1;
   database.child(fId).update(user);
+  console.log('updated');
 }
 
 /* Starting template was adapted from phaser intro tutorial at https://phasertutorials.com/creating-a-simple-multiplayer-game-in-phaser-3-with-an-authoritative-server-part-1/ */
@@ -92,24 +93,20 @@ io.on('connection', (socket) => {
   };
   let fId = '';
   socket.on('username', (Username) => {
-    console.log(Username);
     userMap.entrySeq().forEach((element) => {
       const n = Username.localeCompare(element[1].username);
       if (n === 0) {
         fId = element[0];
         user = element[1];
-        console.log(fId, user);
       }
     });
     if (user.initial === true) {
       user = {
         initial: false, username: Username, score: 0, socketId: socket.id,
       };
-      console.log(user);
       const ref = database.push(user);
       // eslint-disable-next-line no-unused-vars
       fId = ref.key;
-      console.log(fId);
     }
   });
   players[socket.id] = {
@@ -185,6 +182,7 @@ io.on('connection', (socket) => {
     } else {
       scores.blue += 10;
     }
+    // scoreIncrease(fId, user);
     // console.log(user);
     star.x = Math.floor(Math.random() * 700) + 50;
     star.y = Math.floor(Math.random() * 500) + 50;
