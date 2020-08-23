@@ -79,7 +79,7 @@ io.on('connection', (socket) => {
   let user = {
     initial: true, username: '', score: -1, socketId: socket.id,
   };
-  let fId = '';
+  let fId;
   socket.on('username', (Username) => {
     userMap.entrySeq().forEach((element) => {
       const n = Username.localeCompare(element[1].username);
@@ -96,6 +96,7 @@ io.on('connection', (socket) => {
       // eslint-disable-next-line no-unused-vars
       fId = ref.key;
     }
+    console.log(fId);
   });
   players[socket.id] = {
     rotation: 0,
@@ -170,8 +171,7 @@ io.on('connection', (socket) => {
     } else {
       scores.blue += 10;
     }
-    // scoreIncrease(fId, user);
-    // console.log(user);
+    scoreIncrease(fId, user);
     star.x = Math.floor(Math.random() * 700) + 50;
     star.y = Math.floor(Math.random() * 500) + 50;
     io.emit('starLocation', star);
