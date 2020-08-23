@@ -8,6 +8,11 @@ import morgan from 'morgan';
 import { Map } from 'immutable';
 import socketio from 'socket.io';
 import http from 'http';
+import mongoose from 'mongoose';
+import throttle from 'lodash.throttle';
+import debounce from 'lodash.debounce';
+
+import * as ChatMessages from './controllers/chat_message_controller';
 import database from './services/datastore';
 
 // initialize
@@ -51,6 +56,11 @@ app.use(bodyParser.json());
 
 // additional init stuff should go before hitting the routing
 
+// DB setup
+const mongoURI = process.env.MONGODB_URI || 'mongodb://localhost/chat_db';
+mongoose.connect(mongoURI);
+mongoose.Promise = global.Promise;
+
 // default index route
 app.get('/', (req, res) => {
   res.send('hi');
@@ -66,6 +76,17 @@ function scoreIncrease(fId, user) {
 
 io.on('connection', (socket) => {
   console.log('a user connected');
+
+  let emitToSelf = (title, object) => {
+    socket.emit(title, object);
+  };
+  emitToSelf = debounce(emitToSelf, 200);
+
+  let emitToOthers = (title, object) => {
+    socket.broadcast.emit(title, object);
+  };
+  emitToOthers = throttle(emitToOthers, 25);
+
   let user = {
     initial: true, username: '', score: -1, socketId: socket.id,
   };
@@ -100,23 +121,63 @@ io.on('connection', (socket) => {
   };
   student = !student;
   // send the players object to the new player
-  socket.emit('currentPlayers', players);
+  emitToSelf('currentPlayers', players);
   // update all other players of the new player
-  socket.broadcast.emit('newPlayer', players[socket.id]);
-  socket.emit('starLocation', star);
-  socket.emit('scoreUpdate', scores);
+  emitToOthers('newPlayer', players[socket.id]);
+  emitToSelf('starLocation', star);
+  emitToSelf('scoreUpdate', scores);
   socket.on('disconnect', () => {
     delete players[socket.id];
     io.emit('disconnect', socket.id);
     console.log('user disconnected');
   });
+
+  // Handling chat
+  // For now, chat messages will carry over from game to game --> need to create/call a method to delete all chatMessages from game/round over
+  // On first connection, send chats to player
+  ChatMessages.getChatMessages().then((result) => {
+    console.log('initial chat messages sent');
+    emitToSelf('chatMessages', result);
+  });
+  // method to push chat messages to all players
+  const pushChatMessages = () => {
+    console.log('getting chat messages');
+    ChatMessages.getChatMessages().then((result) => {
+      console.log('sent chat messages');
+      console.log(result);
+      io.sockets.emit('chatMessages', result);
+    });
+  };
+  // event listener to handle creating a new chat message
+  socket.on('createChatMessage', (fields) => {
+    console.log('chat received');
+    // Call the createChatMessage function
+    ChatMessages.createChatMessage(fields).then((result) => {
+      // Then push all the chatMessages (including the newly created one) to all players
+      pushChatMessages();
+    }).catch((error) => {
+      console.log(error);
+      emitToSelf('error', 'create failed');
+    });
+  });
+  // event listener to clear the chat
+  socket.on('clearChat', () => {
+    ChatMessages.clearChat().then((result) => {
+      console.log('chat cleared');
+      pushChatMessages();
+    }).catch((error) => {
+      console.log(error);
+      emitToSelf('error', 'clear failed');
+    });
+  });
+
   // when a player moves, update the player data
   socket.on('playerMovement', (movementData) => {
     players[socket.id].x = movementData.x;
     players[socket.id].y = movementData.y;
     players[socket.id].rotation = movementData.rotation;
     // emit a message to all players about the player that moved
-    socket.broadcast.emit('playerMoved', players[socket.id]);
+    emitToOthers('playerMoved', players[socket.id]);
   });
   socket.on('starCollected', () => {
     if (players[socket.id].team === 'red') {
