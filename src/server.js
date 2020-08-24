@@ -77,12 +77,12 @@ io.on('connection', (socket) => {
   console.log('a user connected');
 
   let user = {
-    initial: true, username: '', score: -1, socketId: socket.id,
+    initial: true, username: '', score: -1, socketId: socket.id, email: '',
   };
   let fId;
-  socket.on('username', (Username) => {
+  socket.on('username', (User) => {
     userMap.entrySeq().forEach((element) => {
-      const n = Username.localeCompare(element[1].username);
+      const n = User[1].localeCompare(element[1].email);
       if (n === 0) {
         fId = element[0];
         user = element[1];
@@ -90,7 +90,7 @@ io.on('connection', (socket) => {
     });
     if (user.initial === true) {
       user = {
-        initial: false, username: Username, score: 0, socketId: socket.id,
+        initial: false, username: User[0], score: 0, socketId: socket.id, email: User[0],
       };
       const ref = database.push(user);
       // eslint-disable-next-line no-unused-vars
