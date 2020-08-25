@@ -1,16 +1,29 @@
+/* eslint-disable new-cap */
+/* eslint-disable prefer-destructuring */
 import express from 'express';
 import bodyParser from 'body-parser';
 import cors from 'cors';
 import path from 'path';
 import morgan from 'morgan';
+import { Map } from 'immutable';
 import socketio from 'socket.io';
 import http from 'http';
+import mongoose from 'mongoose';
+
+import * as ChatMessages from './controllers/chat_message_controller';
+import database from './services/datastore';
 
 // initialize
 const app = express();
 const server = http.createServer(app);
 const io = socketio(server);
 const players = {};
+// For score keeping and leaderboards
+let userMap = Map();
+database.on('value', (snapshot) => {
+  const newUserState = snapshot.val();
+  userMap = Map(newUserState);
+});
 let student = true;
 const star = {
   x: Math.floor(Math.random() * 700) + 50,
@@ -41,15 +54,50 @@ app.use(bodyParser.json());
 
 // additional init stuff should go before hitting the routing
 
+// DB setup
+const mongoURI = process.env.MONGODB_URI || 'mongodb://localhost/chat_db';
+mongoose.connect(mongoURI);
+mongoose.Promise = global.Promise;
+
 // default index route
 app.get('/', (req, res) => {
   res.send('hi');
 });
 
+// eslint-disable-next-line no-unused-vars
+function scoreIncrease(fId, user) {
+  user.score += 1;
+  database.child(fId).update(user);
+  console.log('updated');
+}
+
 /* Starting template was adapted from phaser intro tutorial at https://phasertutorials.com/creating-a-simple-multiplayer-game-in-phaser-3-with-an-authoritative-server-part-1/ */
 
 io.on('connection', (socket) => {
   console.log('a user connected');
+
+  let user = {
+    initial: true, username: '', score: -1, socketId: socket.id,
+  };
+  let fId;
+  socket.on('username', (Username) => {
+    userMap.entrySeq().forEach((element) => {
+      const n = Username.localeCompare(element[1].username);
+      if (n === 0) {
+        fId = element[0];
+        user = element[1];
+      }
+    });
+    if (user.initial === true) {
+      user = {
+        initial: false, username: Username, score: 0, socketId: socket.id,
+      };
+      const ref = database.push(user);
+      // eslint-disable-next-line no-unused-vars
+      fId = ref.key;
+    }
+    console.log(fId);
+  });
   players[socket.id] = {
     rotation: 0,
     x: Math.floor(Math.random() * 700) + 50,
@@ -70,6 +118,46 @@ io.on('connection', (socket) => {
     io.emit('disconnect', socket.id);
     console.log('user disconnected');
   });
+
+  // Handling chat
+  // For now, chat messages will carry over from game to game --> need to create/call a method to delete all chatMessages from game/round over
+  // On first connection, send chats to player
+  ChatMessages.getChatMessages().then((result) => {
+    console.log('initial chat messages sent');
+    socket.emit('chatMessages', result);
+  });
+  // method to push chat messages to all players
+  const pushChatMessages = () => {
+    console.log('getting chat messages');
+    ChatMessages.getChatMessages().then((result) => {
+      console.log('sent chat messages');
+      console.log(result);
+      io.sockets.emit('chatMessages', result);
+    });
+  };
+  // event listener to handle creating a new chat message
+  socket.on('createChatMessage', (fields) => {
+    console.log('chat received');
+    // Call the createChatMessage function
+    ChatMessages.createChatMessage(fields).then((result) => {
+      // Then push all the chatMessages (including the newly created one) to all players
+      pushChatMessages();
+    }).catch((error) => {
+      console.log(error);
+      socket.emit('error', 'create failed');
+    });
+  });
+  // event listener to clear the chat
+  socket.on('clearChat', () => {
+    ChatMessages.clearChat().then((result) => {
+      console.log('chat cleared');
+      pushChatMessages();
+    }).catch((error) => {
+      console.log(error);
+      socket.emit('error', 'clear failed');
+    });
+  });
+
   // when a player moves, update the player data
   socket.on('playerMovement', (movementData) => {
     players[socket.id].x = movementData.x;
@@ -85,6 +173,7 @@ io.on('connection', (socket) => {
     } else {
       scores.blue += 10;
     }
+    scoreIncrease(fId, user);
     star.x = Math.floor(Math.random() * 700) + 50;
     star.y = Math.floor(Math.random() * 500) + 50;
     io.emit('starLocation', star);
