@@ -33,6 +33,8 @@ const scores = {
   blue: 0,
   red: 0,
 };
+// eslint-disable-next-line camelcase
+const serverlasers = [];
 // enable/disable cross origin resource sharing if necessary
 app.use(cors());
 
@@ -167,6 +169,7 @@ io.on('connection', (socket) => {
     // emit a message to all players about the player that moved
     socket.broadcast.emit('playerMoved', players[socket.id]);
   });
+
   socket.on('starCollected', () => {
     if (players[socket.id].team === 'red') {
       scores.red += 10;
@@ -179,7 +182,34 @@ io.on('connection', (socket) => {
     io.emit('starLocation', star);
     io.emit('scoreUpdate', scores);
   });
+
+  socket.on('lasershot', (data) => {
+    if (players[socket.id] !== undefined) {
+      serverlasers.push(data);
+    }
+  });
 });
+
+setInterval(() => {
+  serverlasers.forEach((item, index) => {
+    const speedX = Math.cos(item.rotation + Math.PI / 2) * item.laser_speed;
+    const speedY = Math.sin(item.rotation + Math.PI / 2) * item.laser_speed;
+    item.x += speedX;
+    item.y += speedY;
+    Object.keys(players).forEach((key) => {
+      if (item.shotfrom !== key) {
+        if ((Math.hypot(players[key].x - item.x, players[key].y - item.y)) <= 30) {
+          io.emit('hit', { playerId: players[key].playerId, laserId: item.laserId });
+        }
+      }
+    });
+    if ((Math.hypot(item.x - item.initial_x, item.y - item.initial_y)) >= 500) {
+      serverlasers.splice(index, 1);
+    }
+  });
+  io.emit('laser-locationchange', serverlasers);
+}, 20);
+
 // START THE SERVER
 // =============================================================================
 const port = process.env.PORT || 9090;
