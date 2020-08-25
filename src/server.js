@@ -143,7 +143,6 @@ io.on('connection', (socket) => {
     console.log('getting chat messages');
     ChatMessages.getChatMessages().then((result) => {
       console.log('sent chat messages');
-      console.log(result);
       io.sockets.emit('chatMessages', result);
     });
   };
