@@ -55,6 +55,7 @@ io.on('connection', (socket) => {
     x: Math.floor(Math.random() * 700) + 50,
     y: Math.floor(Math.random() * 500) + 50,
     playerId: socket.id,
+    base_speed: 1,
     team: (student === true) ? 'red' : 'blue',
   };
   student = !student;
@@ -74,6 +75,7 @@ io.on('connection', (socket) => {
     players[socket.id].x = movementData.x;
     players[socket.id].y = movementData.y;
     players[socket.id].rotation = movementData.rotation;
+    players[socket.id].base_speed = movementData.base_speed;
     // emit a message to all players about the player that moved
     socket.broadcast.emit('playerMoved', players[socket.id]);
   });
