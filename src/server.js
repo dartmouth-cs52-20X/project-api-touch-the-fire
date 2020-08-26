@@ -29,6 +29,10 @@ const star = {
   x: Math.floor(Math.random() * 700) + 50,
   y: Math.floor(Math.random() * 500) + 50,
 };
+const keystone = {
+  x: Math.floor(Math.random() * 700) + 50,
+  y: Math.floor(Math.random() * 500) + 50,
+};
 const scores = {
   blue: 0,
   red: 0,
@@ -112,6 +116,7 @@ io.on('connection', (socket) => {
   socket.emit('currentPlayers', players);
   // update all other players of the new player
   socket.broadcast.emit('newPlayer', players[socket.id]);
+  socket.emit('keystoneLocation', keystone);
   socket.emit('starLocation', star);
   socket.emit('scoreUpdate', scores);
   socket.emit('timeUpdate');
@@ -193,6 +198,19 @@ io.on('connection', (socket) => {
     star.x = Math.floor(Math.random() * 700) + 50;
     star.y = Math.floor(Math.random() * 500) + 50;
     io.emit('starLocation', star);
+    io.emit('scoreUpdate', scores);
+  });
+
+  socket.on('keystoneCollected', () => {
+    if (players[socket.id].team === 'red') {
+      scores.red += 100;
+    } else {
+      scores.blue += 100;
+    }
+    scoreIncrease(fId, user);
+    keystone.x = Math.floor(Math.random() * 700) + 50;
+    keystone.y = Math.floor(Math.random() * 500) + 50;
+    io.emit('keystoneLocation', keystone);
     io.emit('scoreUpdate', scores);
   });
 
