@@ -29,6 +29,10 @@ const star = {
   x: Math.floor(Math.random() * 700) + 50,
   y: Math.floor(Math.random() * 500) + 50,
 };
+const keystone = {
+  x: Math.floor(Math.random() * 700) + 50,
+  y: Math.floor(Math.random() * 500) + 50,
+};
 const scores = {
   blue: 0,
   red: 0,
@@ -113,8 +117,10 @@ io.on('connection', (socket) => {
   socket.emit('currentPlayers', players);
   // update all other players of the new player
   socket.broadcast.emit('newPlayer', players[socket.id]);
+  socket.emit('keystoneLocation', keystone);
   socket.emit('starLocation', star);
   socket.emit('scoreUpdate', scores);
+  socket.emit('timeUpdate');
   socket.on('disconnect', () => {
     delete players[socket.id];
     io.emit('disconnect', socket.id);
@@ -170,6 +176,20 @@ io.on('connection', (socket) => {
     socket.broadcast.emit('playerMoved', players[socket.id]);
   });
 
+  socket.on('updateTime', () => {
+    socket.emit('timeUpdate');
+  });
+
+  socket.on('calcFireTime', (fireTouches) => {
+    console.log(fireTouches);
+    if (players[socket.id].team === 'red') {
+      scores.red += fireTouches;
+    } else {
+      scores.blue += fireTouches;
+    }
+    io.emit('scoreUpdate', scores);
+  });
+
   socket.on('starCollected', () => {
     if (players[socket.id].team === 'red') {
       scores.red += 10;
@@ -180,6 +200,19 @@ io.on('connection', (socket) => {
     star.x = Math.floor(Math.random() * 700) + 50;
     star.y = Math.floor(Math.random() * 500) + 50;
     io.emit('starLocation', star);
+    io.emit('scoreUpdate', scores);
+  });
+
+  socket.on('keystoneCollected', () => {
+    if (players[socket.id].team === 'red') {
+      scores.red += 100;
+    } else {
+      scores.blue += 100;
+    }
+    scoreIncrease(fId, user);
+    keystone.x = Math.floor(Math.random() * 700) + 50;
+    keystone.y = Math.floor(Math.random() * 500) + 50;
+    io.emit('keystoneLocation', keystone);
     io.emit('scoreUpdate', scores);
   });
 
@@ -199,7 +232,7 @@ setInterval(() => {
     Object.keys(players).forEach((key) => {
       if (item.shotfrom !== key) {
         if ((Math.hypot(players[key].x - item.x, players[key].y - item.y)) <= 30) {
-          io.emit('hit', { playerId: players[key].playerId, laserId: item.laserId });
+          io.emit('hit', { playerId: players[key].playerId, laserId: item.laserId, shooter_team: item.shooter_team });
         }
       }
     });
