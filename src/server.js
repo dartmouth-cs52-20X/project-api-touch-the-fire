@@ -29,10 +29,16 @@ const star = {
   x: Math.floor(Math.random() * 700) + 50,
   y: Math.floor(Math.random() * 500) + 50,
 };
+const keystone = {
+  x: Math.floor(Math.random() * 700) + 50,
+  y: Math.floor(Math.random() * 500) + 50,
+};
 const scores = {
   blue: 0,
   red: 0,
 };
+// eslint-disable-next-line camelcase
+const serverlasers = [];
 // enable/disable cross origin resource sharing if necessary
 app.use(cors());
 
@@ -110,8 +116,10 @@ io.on('connection', (socket) => {
   socket.emit('currentPlayers', players);
   // update all other players of the new player
   socket.broadcast.emit('newPlayer', players[socket.id]);
+  socket.emit('keystoneLocation', keystone);
   socket.emit('starLocation', star);
   socket.emit('scoreUpdate', scores);
+  socket.emit('timeUpdate');
   socket.on('disconnect', () => {
     delete players[socket.id];
     io.emit('disconnect', socket.id);
@@ -165,6 +173,21 @@ io.on('connection', (socket) => {
     // emit a message to all players about the player that moved
     socket.broadcast.emit('playerMoved', players[socket.id]);
   });
+
+  socket.on('updateTime', () => {
+    socket.emit('timeUpdate');
+  });
+
+  socket.on('calcFireTime', (fireTouches) => {
+    console.log(fireTouches);
+    if (players[socket.id].team === 'red') {
+      scores.red += fireTouches;
+    } else {
+      scores.blue += fireTouches;
+    }
+    io.emit('scoreUpdate', scores);
+  });
+
   socket.on('starCollected', () => {
     if (players[socket.id].team === 'red') {
       scores.red += 10;
@@ -177,7 +200,47 @@ io.on('connection', (socket) => {
     io.emit('starLocation', star);
     io.emit('scoreUpdate', scores);
   });
+
+  socket.on('keystoneCollected', () => {
+    if (players[socket.id].team === 'red') {
+      scores.red += 100;
+    } else {
+      scores.blue += 100;
+    }
+    scoreIncrease(fId, user);
+    keystone.x = Math.floor(Math.random() * 700) + 50;
+    keystone.y = Math.floor(Math.random() * 500) + 50;
+    io.emit('keystoneLocation', keystone);
+    io.emit('scoreUpdate', scores);
+  });
+
+  socket.on('lasershot', (data) => {
+    if (players[socket.id] !== undefined) {
+      serverlasers.push(data);
+    }
+  });
 });
+
+setInterval(() => {
+  serverlasers.forEach((item, index) => {
+    const speedX = Math.cos(item.rotation + Math.PI / 2) * item.laser_speed;
+    const speedY = Math.sin(item.rotation + Math.PI / 2) * item.laser_speed;
+    item.x += speedX;
+    item.y += speedY;
+    Object.keys(players).forEach((key) => {
+      if (item.shotfrom !== key) {
+        if ((Math.hypot(players[key].x - item.x, players[key].y - item.y)) <= 30) {
+          io.emit('hit', { playerId: players[key].playerId, laserId: item.laserId, shooter_team: item.shooter_team });
+        }
+      }
+    });
+    if ((Math.hypot(item.x - item.initial_x, item.y - item.initial_y)) >= 500) {
+      serverlasers.splice(index, 1);
+    }
+  });
+  io.emit('laser-locationchange', serverlasers);
+}, 20);
+
 // START THE SERVER
 // =============================================================================
 const port = process.env.PORT || 9090;
