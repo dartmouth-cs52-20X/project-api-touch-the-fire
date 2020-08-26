@@ -114,6 +114,7 @@ io.on('connection', (socket) => {
   socket.broadcast.emit('newPlayer', players[socket.id]);
   socket.emit('starLocation', star);
   socket.emit('scoreUpdate', scores);
+  socket.emit('timeUpdate');
   socket.on('disconnect', () => {
     delete players[socket.id];
     io.emit('disconnect', socket.id);
@@ -166,6 +167,20 @@ io.on('connection', (socket) => {
     players[socket.id].rotation = movementData.rotation;
     // emit a message to all players about the player that moved
     socket.broadcast.emit('playerMoved', players[socket.id]);
+  });
+
+  socket.on('updateTime', () => {
+    socket.emit('timeUpdate');
+  });
+
+  socket.on('calcFireTime', (fireTouches) => {
+    console.log(fireTouches);
+    if (players[socket.id].team === 'red') {
+      scores.red += fireTouches;
+    } else {
+      scores.blue += fireTouches;
+    }
+    io.emit('scoreUpdate', scores);
   });
 
   socket.on('starCollected', () => {
