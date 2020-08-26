@@ -8,8 +8,8 @@ import morgan from 'morgan';
 import { Map } from 'immutable';
 import socketio from 'socket.io';
 import http from 'http';
+import throttle from 'lodash.throttle';
 import mongoose from 'mongoose';
-
 import * as ChatMessages from './controllers/chat_message_controller';
 import database from './services/datastore';
 
@@ -81,6 +81,11 @@ function scoreIncrease(fId, user) {
 
 io.on('connection', (socket) => {
   console.log('a user connected');
+
+  let emitToOthers = (string, payload) => {
+    socket.broadcast.emit(string, payload);
+  };
+  emitToOthers = throttle(emitToOthers, 25);
 
   let user = {
     initial: true, username: '', score: -1, socketId: socket.id,
@@ -171,7 +176,7 @@ io.on('connection', (socket) => {
     players[socket.id].y = movementData.y;
     players[socket.id].rotation = movementData.rotation;
     // emit a message to all players about the player that moved
-    socket.broadcast.emit('playerMoved', players[socket.id]);
+    emitToOthers('playerMoved', players[socket.id]);
   });
 
   socket.on('updateTime', () => {
@@ -221,6 +226,11 @@ io.on('connection', (socket) => {
   });
 });
 
+let emitLaserloc = (payload) => {
+  io.emit('laser-locationchange', payload);
+};
+emitLaserloc = throttle(emitLaserloc, 25);
+
 setInterval(() => {
   serverlasers.forEach((item, index) => {
     const speedX = Math.cos(item.rotation + Math.PI / 2) * item.laser_speed;
@@ -238,7 +248,7 @@ setInterval(() => {
       serverlasers.splice(index, 1);
     }
   });
-  io.emit('laser-locationchange', serverlasers);
+  emitLaserloc(serverlasers);
 }, 20);
 
 // START THE SERVER
