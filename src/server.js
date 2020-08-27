@@ -134,9 +134,16 @@ io.on('connection', (socket) => {
   // Handling chat
   // For now, chat messages will carry over from game to game --> need to create/call a method to delete all chatMessages from game/round over
   // On first connection, send chats to player
-  ChatMessages.getChatMessages().then((result) => {
-    console.log('initial chat messages sent');
-    socket.emit('chatMessages', result);
+  // ChatMessages.getChatMessages().then((result) => {
+  //   console.log('initial chat messages sent');
+  //   socket.emit('chatMessages', result);
+  // });
+  // Handle initial request from client for chats
+  socket.on('getInitialChats', () => {
+    ChatMessages.getChatMessages().then((result) => {
+      console.log('initial chat messages sent');
+      socket.emit('chatMessages', result);
+    });
   });
   // method to push chat messages to all players
   const pushChatMessages = () => {
