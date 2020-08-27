@@ -37,7 +37,6 @@ const scores = {
   blue: 0,
   red: 0,
 };
-// eslint-disable-next-line camelcase
 const serverlasers = [];
 // enable/disable cross origin resource sharing if necessary
 app.use(cors());
@@ -124,7 +123,6 @@ io.on('connection', (socket) => {
   socket.emit('keystoneLocation', keystone);
   socket.emit('starLocation', star);
   socket.emit('scoreUpdate', scores);
-  socket.emit('timeUpdate');
   socket.on('disconnect', () => {
     delete players[socket.id];
     io.emit('disconnect', socket.id);
@@ -179,16 +177,11 @@ io.on('connection', (socket) => {
     emitToOthers('playerMoved', players[socket.id]);
   });
 
-  socket.on('updateTime', () => {
-    socket.emit('timeUpdate');
-  });
-
-  socket.on('calcFireTime', (fireTouches) => {
-    console.log(fireTouches);
+  socket.on('calcFireTime', (score) => {
     if (players[socket.id].team === 'red') {
-      scores.red += fireTouches;
+      scores.red += score.weight;
     } else {
-      scores.blue += fireTouches;
+      scores.blue += score.weight;
     }
     io.emit('scoreUpdate', scores);
   });
@@ -251,6 +244,50 @@ setInterval(() => {
   emitLaserloc(serverlasers);
 }, 20);
 
+let time = 0;
+let gamerestartin = 10;
+let interval = null;
+function startTimer(f, t) {
+  interval = setInterval(f, t);
+}
+
+function stopTimer() {
+  clearInterval(interval);
+}
+
+const tick = () => {
+  time += 1;
+  io.emit('tick', time);
+  if (time >= 30) {
+    stopTimer(interval);
+    time = 0;
+    if (scores.red > scores.blue) {
+      io.emit('gameover', { text: `Red won ${scores.red}:${scores.blue} `, winner: 'red' });
+    } else if (scores.red === scores.blue) {
+      io.emit('gameover', { text: `Draw ${scores.red}:${scores.blue}`, winner: 'draw' });
+    } else {
+      io.emit('gameover', { text: `Blue won ${scores.blue}:${scores.red}`, winner: 'blue' });
+    }
+    // eslint-disable-next-line no-use-before-define
+    startTimer(gamerestart, 1000);
+  }
+};
+
+const gamerestart = () => {
+  gamerestartin -= 1;
+  io.emit('restarttick', gamerestartin);
+  if (gamerestartin < 1) {
+    stopTimer(interval);
+    gamerestartin = 10;
+    io.emit('restart', { c: 1 });
+    scores.blue = 0;
+    scores.red = 0;
+    io.emit('scoreUpdate', scores);
+    startTimer(tick, 1000);
+  }
+};
+
+startTimer(tick, 1000);
 // START THE SERVER
 // =============================================================================
 const port = process.env.PORT || 9090;
