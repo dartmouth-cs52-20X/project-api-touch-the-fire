@@ -8,8 +8,8 @@ import morgan from 'morgan';
 import { Map } from 'immutable';
 import socketio from 'socket.io';
 import http from 'http';
+import throttle from 'lodash.throttle';
 import mongoose from 'mongoose';
-
 import * as ChatMessages from './controllers/chat_message_controller';
 import database from './services/datastore';
 
@@ -37,7 +37,6 @@ const scores = {
   blue: 0,
   red: 0,
 };
-// eslint-disable-next-line camelcase
 const serverlasers = [];
 // enable/disable cross origin resource sharing if necessary
 app.use(cors());
@@ -82,6 +81,11 @@ function scoreIncrease(fId, user) {
 io.on('connection', (socket) => {
   console.log('a user connected');
 
+  let emitToOthers = (string, payload) => {
+    socket.broadcast.emit(string, payload);
+  };
+  emitToOthers = throttle(emitToOthers, 25);
+
   let user = {
     initial: true, username: '', score: -1, socketId: socket.id,
   };
@@ -120,7 +124,6 @@ io.on('connection', (socket) => {
   socket.emit('keystoneLocation', keystone);
   socket.emit('starLocation', star);
   socket.emit('scoreUpdate', scores);
-  socket.emit('timeUpdate');
   socket.on('disconnect', () => {
     delete players[socket.id];
     io.emit('disconnect', socket.id);
@@ -173,19 +176,14 @@ io.on('connection', (socket) => {
     players[socket.id].rotation = movementData.rotation;
     players[socket.id].base_speed = movementData.base_speed;
     // emit a message to all players about the player that moved
-    socket.broadcast.emit('playerMoved', players[socket.id]);
+    emitToOthers('playerMoved', players[socket.id]);
   });
 
-  socket.on('updateTime', () => {
-    socket.emit('timeUpdate');
-  });
-
-  socket.on('calcFireTime', (fireTouches) => {
-    console.log(fireTouches);
+  socket.on('calcFireTime', (score) => {
     if (players[socket.id].team === 'red') {
-      scores.red += fireTouches;
+      scores.red += score.weight;
     } else {
-      scores.blue += fireTouches;
+      scores.blue += score.weight;
     }
     io.emit('scoreUpdate', scores);
   });
@@ -223,6 +221,11 @@ io.on('connection', (socket) => {
   });
 });
 
+let emitLaserloc = (payload) => {
+  io.emit('laser-locationchange', payload);
+};
+emitLaserloc = throttle(emitLaserloc, 25);
+
 setInterval(() => {
   serverlasers.forEach((item, index) => {
     const speedX = Math.cos(item.rotation + Math.PI / 2) * item.laser_speed;
@@ -240,9 +243,53 @@ setInterval(() => {
       serverlasers.splice(index, 1);
     }
   });
-  io.emit('laser-locationchange', serverlasers);
+  emitLaserloc(serverlasers);
 }, 20);
 
+let time = 0;
+let gamerestartin = 10;
+let interval = null;
+function startTimer(f, t) {
+  interval = setInterval(f, t);
+}
+
+function stopTimer() {
+  clearInterval(interval);
+}
+
+const tick = () => {
+  time += 1;
+  io.emit('tick', time);
+  if (time >= 30) {
+    stopTimer(interval);
+    time = 0;
+    if (scores.red > scores.blue) {
+      io.emit('gameover', { text: `Red won ${scores.red}:${scores.blue} `, winner: 'red' });
+    } else if (scores.red === scores.blue) {
+      io.emit('gameover', { text: `Draw ${scores.red}:${scores.blue}`, winner: 'draw' });
+    } else {
+      io.emit('gameover', { text: `Blue won ${scores.blue}:${scores.red}`, winner: 'blue' });
+    }
+    // eslint-disable-next-line no-use-before-define
+    startTimer(gamerestart, 1000);
+  }
+};
+
+const gamerestart = () => {
+  gamerestartin -= 1;
+  io.emit('restarttick', gamerestartin);
+  if (gamerestartin < 1) {
+    stopTimer(interval);
+    gamerestartin = 10;
+    io.emit('restart', { c: 1 });
+    scores.blue = 0;
+    scores.red = 0;
+    io.emit('scoreUpdate', scores);
+    startTimer(tick, 1000);
+  }
+};
+
+startTimer(tick, 1000);
 // START THE SERVER
 // =============================================================================
 const port = process.env.PORT || 9090;
