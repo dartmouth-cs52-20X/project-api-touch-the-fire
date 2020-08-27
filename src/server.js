@@ -116,7 +116,7 @@ io.on('connection', (socket) => {
     const index = waiting_players.indexOf(socket.id);
     if (index !== -1) {
       waiting_players.splice(index, 1);
-      console.log(`removed socket id: ${socket.id}`);
+      console.log(`removed socket id ${socket.id} from queue`);
       console.log(waiting_players);
       // Update clients on the current queue length
       for (let i = 0; i < waiting_players.length; i++) {
