@@ -1,3 +1,5 @@
+/* eslint-disable no-plusplus */
+/* eslint-disable camelcase */
 /* eslint-disable new-cap */
 /* eslint-disable prefer-destructuring */
 import express from 'express';
@@ -37,6 +39,10 @@ const scores = {
   blue: 0,
   red: 0,
 };
+// For queueing
+// eslint-disable-next-line camelcase
+const waiting_players = [];
+
 // eslint-disable-next-line camelcase
 const serverlasers = [];
 // enable/disable cross origin resource sharing if necessary
@@ -81,6 +87,44 @@ function scoreIncrease(fId, user) {
 
 io.on('connection', (socket) => {
   console.log('a user connected');
+
+  // Handling gamematching/queueing
+  // Note: Still need to handle the case where a user joins the queue while the game is in progress
+  // Also, need to figure out the endgame case --> are previous players automatically re-added to the queue?
+  // Add to the waiting queue on request
+  socket.on('add me to the queue', () => {
+    waiting_players.push(socket.id);
+    console.log(waiting_players);
+
+    // If the queue reaches six, we can now start the game!
+    // Broadcast to each socket id that they can go to the game
+    // I think this would also be the place to call any methods to initialize the game
+    if (waiting_players.length === 6) {
+      for (let i = 0; i < 6; i++) {
+        const curr_socket_id = waiting_players.shift();
+        io.to(curr_socket_id).emit('go to the game');
+      }
+    } else { // Tell the waiting players how many are currently in the queue
+      for (let i = 0; i < waiting_players.length; i++) {
+        const curr_socket_id = waiting_players[i];
+        io.to(curr_socket_id).emit('current queue length', waiting_players.length);
+      }
+    }
+  });
+  // Remove from the waiting queue on request
+  socket.on('remove me from the queue', () => {
+    const index = waiting_players.indexOf(socket.id);
+    if (index !== -1) {
+      waiting_players.splice(index, 1);
+      console.log(`removed socket id: ${socket.id}`);
+      console.log(waiting_players);
+      // Update clients on the current queue length
+      for (let i = 0; i < waiting_players.length; i++) {
+        const curr_socket_id = waiting_players[i];
+        io.to(curr_socket_id).emit('current queue length', waiting_players.length);
+      }
+    }
+  });
 
   let emitToOthers = (string, payload) => {
     socket.broadcast.emit(string, payload);
