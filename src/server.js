@@ -1,3 +1,5 @@
+/* eslint-disable no-plusplus */
+/* eslint-disable camelcase */
 /* eslint-disable new-cap */
 /* eslint-disable prefer-destructuring */
 import express from 'express';
@@ -37,6 +39,12 @@ const scores = {
   blue: 0,
   red: 0,
 };
+// For queueing
+// eslint-disable-next-line camelcase
+const waiting_players = [];
+const game_players = [];
+
+// eslint-disable-next-line camelcase
 const serverlasers = [];
 // enable/disable cross origin resource sharing if necessary
 app.use(cors());
@@ -81,6 +89,50 @@ function scoreIncrease(fId, user) {
 io.on('connection', (socket) => {
   console.log('a user connected');
 
+  // Handling queueing
+  // Adding a player to the waiting queue
+  socket.on('add me to the waiting queue', () => {
+    waiting_players.push(socket.id);
+    console.log(`added socket id ${socket.id} to the waiting queue`);
+    // Tell the player the current game size
+    socket.emit('current game size', game_players.length);
+  });
+  // Remove player from the waiting queue on request
+  socket.on('remove me from the queue', () => {
+    const index = waiting_players.indexOf(socket.id);
+    if (index !== -1) {
+      waiting_players.splice(index, 1);
+      console.log(`removed socket id ${socket.id} from waiting queue`);
+    }
+  });
+  // Moving a player from the waiting queue to the game_players queue
+  socket.on('add me to the game', () => {
+    if (game_players.length <= 6) {
+      // Add to game queue
+      game_players.push(socket.id);
+      console.log(`added socket id ${socket.id} to the game`);
+      // Tell the waiting players the updated game_players length
+      for (let i = 0; i < waiting_players.length; i++) {
+        const curr_socket_id = waiting_players[i];
+        io.to(curr_socket_id).emit('current game size', game_players.length);
+      }
+    }
+  });
+  // Remove player from the game queue on request
+  socket.on('remove me from the game', () => {
+    const index = game_players.indexOf(socket.id);
+    if (index !== -1) {
+      // Remove from game list
+      game_players.splice(index, 1);
+      console.log(`removed socket id ${socket.id} from the game`);
+      // Update the waiting players on the size of the game
+      for (let i = 0; i < waiting_players.length; i++) {
+        const curr_socket_id = waiting_players[i];
+        io.to(curr_socket_id).emit('current game size', game_players.length);
+      }
+    }
+  });
+
   let emitToOthers = (string, payload) => {
     socket.broadcast.emit(string, payload);
   };
@@ -124,25 +176,46 @@ io.on('connection', (socket) => {
   socket.emit('keystoneLocation', keystone);
   socket.emit('starLocation', star);
   socket.emit('scoreUpdate', scores);
+  // Also remove the socket from both the waiting and game lists (if it's in there)
   socket.on('disconnect', () => {
     delete players[socket.id];
     io.emit('disconnect', socket.id);
     console.log('user disconnected');
+    const game_index = game_players.indexOf(socket.id);
+    const waiting_index = waiting_players.indexOf(socket.id);
+    if (game_index !== -1) {
+      game_players.splice(game_index, 1);
+      console.log(`removed socket id ${socket.id} from the game`);
+    }
+    if (waiting_index !== -1) {
+      waiting_players.splice(waiting_index, 1);
+      console.log(`removed socket id ${socket.id} from waiting queue`);
+    }
+    // Update waiting room on the number of game players
+    for (let i = 0; i < waiting_players.length; i++) {
+      const curr_socket_id = waiting_players[i];
+      io.to(curr_socket_id).emit('current game size', game_players.length);
+    }
   });
 
+  socket.on('forcedisconnect', () => {
+    socket.disconnect();
+    console.log('user disconnected');
+  });
   // Handling chat
   // For now, chat messages will carry over from game to game --> need to create/call a method to delete all chatMessages from game/round over
-  // On first connection, send chats to player
-  ChatMessages.getChatMessages().then((result) => {
-    console.log('initial chat messages sent');
-    socket.emit('chatMessages', result);
+  // Handle initial request from client for chats
+  socket.on('getInitialChats', () => {
+    ChatMessages.getChatMessages().then((result) => {
+      console.log('initial chat messages sent');
+      socket.emit('chatMessages', result);
+    });
   });
   // method to push chat messages to all players
   const pushChatMessages = () => {
     console.log('getting chat messages');
     ChatMessages.getChatMessages().then((result) => {
       console.log('sent chat messages');
-      console.log(result);
       io.sockets.emit('chatMessages', result);
     });
   };
