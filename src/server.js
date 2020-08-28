@@ -84,6 +84,15 @@ function scoreIncrease(fId, user) {
   console.log('updated');
 }
 
+// method to push chat messages to all players
+const pushChatMessages = () => {
+  console.log('getting chat messages');
+  ChatMessages.getChatMessages().then((result) => {
+    console.log('sent chat messages');
+    io.sockets.emit('chatMessages', result);
+  });
+};
+
 /* Starting template was adapted from phaser intro tutorial at https://phasertutorials.com/creating-a-simple-multiplayer-game-in-phaser-3-with-an-authoritative-server-part-1/ */
 
 io.on('connection', (socket) => {
@@ -199,7 +208,6 @@ io.on('connection', (socket) => {
 
   socket.on('forcedisconnect', () => {
     socket.disconnect();
-    console.log('user disconnected');
   });
   // Handling chat
   // For now, chat messages will carry over from game to game --> need to create/call a method to delete all chatMessages from game/round over
@@ -210,14 +218,6 @@ io.on('connection', (socket) => {
       socket.emit('chatMessages', result);
     });
   });
-  // method to push chat messages to all players
-  const pushChatMessages = () => {
-    console.log('getting chat messages');
-    ChatMessages.getChatMessages().then((result) => {
-      console.log('sent chat messages');
-      io.sockets.emit('chatMessages', result);
-    });
-  };
   // event listener to handle creating a new chat message
   socket.on('createChatMessage', (fields) => {
     console.log('chat received');
@@ -228,16 +228,6 @@ io.on('connection', (socket) => {
     }).catch((error) => {
       console.log(error);
       socket.emit('error', 'create failed');
-    });
-  });
-  // event listener to clear the chat
-  socket.on('clearChat', () => {
-    ChatMessages.clearChat().then((result) => {
-      console.log('chat cleared');
-      pushChatMessages();
-    }).catch((error) => {
-      console.log(error);
-      socket.emit('error', 'clear failed');
     });
   });
 
@@ -334,6 +324,13 @@ const tick = () => {
   if (time >= 30) {
     stopTimer(interval);
     time = 0;
+    // Clear chat at the end of each round
+    ChatMessages.clearChat().then((result) => {
+      console.log('chat cleared');
+      pushChatMessages();
+    }).catch((error) => {
+      console.log('error');
+    });
     if (scores.red > scores.blue) {
       io.emit('gameover', { text: `Red won ${scores.red}:${scores.blue} `, winner: 'red' });
     } else if (scores.red === scores.blue) {
