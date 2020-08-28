@@ -129,6 +129,10 @@ io.on('connection', (socket) => {
     console.log('user disconnected');
   });
 
+  socket.on('forcedisconnect', () => {
+    socket.disconnect();
+    console.log('user disconnected');
+  });
   // Handling chat
   // For now, chat messages will carry over from game to game --> need to create/call a method to delete all chatMessages from game/round over
   // On first connection, send chats to player
