@@ -89,7 +89,7 @@ function scoreIncrease(fId, user) {
 io.on('connection', (socket) => {
   console.log('a user connected');
 
-  // Handling gamematching/queueing
+  // Handling queueing
   // Adding a player to the waiting queue
   socket.on('add me to the waiting queue', () => {
     waiting_players.push(socket.id);
