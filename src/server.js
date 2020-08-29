@@ -280,6 +280,10 @@ io.on('connection', (socket) => {
       serverlasers.push(data);
     }
   });
+
+  socket.on('leaderboarddata', (data) => {
+    console.log(data);
+  });
 });
 
 let emitLaserloc = (payload) => {
