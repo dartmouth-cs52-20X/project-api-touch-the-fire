@@ -97,7 +97,12 @@ const pushChatMessages = () => {
 
 io.on('connection', (socket) => {
   console.log('a user connected');
-
+  let logoffTimer = null;
+  logoffTimer = setTimeout(() => {
+    console.log('loggedoutduetoinactivity');
+    socket.emit('kicked', { x: 1 });
+    socket.disconnect();
+  }, 10000);
   // Handling queueing
   // Adding a player to the waiting queue
   socket.on('add me to the waiting queue', () => {
@@ -234,6 +239,12 @@ io.on('connection', (socket) => {
 
   // when a player moves, update the player data
   socket.on('playerMovement', (movementData) => {
+    clearTimeout(logoffTimer);
+    logoffTimer = setTimeout(() => {
+      console.log('loggedoutduetoinactivity');
+      socket.emit('kicked', { x: 1 });
+      socket.disconnect();
+    }, 60000);
     players[socket.id].x = movementData.x;
     players[socket.id].y = movementData.y;
     players[socket.id].rotation = movementData.rotation;
