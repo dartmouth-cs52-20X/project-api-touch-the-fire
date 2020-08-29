@@ -298,13 +298,11 @@ io.on('connection', (socket) => {
     io.emit('starLocationtwo', startwo);
   });
   socket.on('keystoneCollected', () => {
-    scoreIncrease(fId, user);
     keystone.x = Math.floor(Math.random() * 700 * 2) + 50;
     keystone.y = Math.floor(Math.random() * 500 * 2) + 50;
     io.emit('keystoneLocation', keystone);
   });
   socket.on('keystoneCollectedtwo', () => {
-    scoreIncrease(fId, user);
     keystonetwo.x = Math.floor(Math.random() * 600 * 3) + 50;
     keystonetwo.y = Math.floor(Math.random() * 400 * 3) + 50;
     io.emit('keystoneLocationtwo', keystonetwo);
