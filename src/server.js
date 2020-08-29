@@ -367,7 +367,7 @@ setInterval(() => {
   emitLaserloc(serverlasers);
 }, 20);
 
-let time = 30;
+let time = 180;
 let gamerestartin = 10;
 let interval = null;
 function startTimer(f, t) {
@@ -383,7 +383,7 @@ const tick = () => {
   io.emit('tick', time);
   if (time <= 0) {
     stopTimer(interval);
-    time = 30;
+    time = 180;
     // Clear chat at the end of each round
     ChatMessages.clearChat().then((result) => {
       console.log('chat cleared');
