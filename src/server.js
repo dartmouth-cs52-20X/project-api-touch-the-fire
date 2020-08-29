@@ -31,9 +31,17 @@ const star = {
   x: Math.floor(Math.random() * 700) + 50,
   y: Math.floor(Math.random() * 500) + 50,
 };
+const startwo = {
+  x: Math.floor(Math.random() * 700 * 2) + 50,
+  y: Math.floor(Math.random() * 500 * 2) + 50,
+};
 const keystone = {
   x: Math.floor(Math.random() * 700) + 50,
   y: Math.floor(Math.random() * 500) + 50,
+};
+const keystonetwo = {
+  x: Math.floor(Math.random() * 700 * 2) + 50,
+  y: Math.floor(Math.random() * 500 * 2) + 50,
 };
 const scores = {
   blue: 0,
@@ -97,7 +105,26 @@ const pushChatMessages = () => {
 
 io.on('connection', (socket) => {
   console.log('a user connected');
+  let inactivecheck = null;
+  // eslint-disable-next-line no-unused-vars
+  inactivecheck = setTimeout(() => {
+    console.log('inactive kick');
+    socket.emit('kicked', { x: 1 });
+    socket.disconnect();
+  }, 10800000);
 
+  let logoffTimer = null;
+  let isgame = false;
+  socket.on('isgame', () => {
+    isgame = true;
+  });
+  logoffTimer = setTimeout(() => {
+    if (isgame === true) {
+      console.log('loggedoutduetoinactivity');
+      socket.emit('kicked', { x: 1 });
+      socket.disconnect();
+    }
+  }, 10000);
   // Handling queueing
   // Adding a player to the waiting queue
   socket.on('add me to the waiting queue', () => {
@@ -148,12 +175,12 @@ io.on('connection', (socket) => {
   emitToOthers = throttle(emitToOthers, 25);
 
   let user = {
-    initial: true, username: '', score: -1, socketId: socket.id,
+    initial: true, username: '', score: -1, socketId: socket.id, email: '',
   };
   let fId;
-  socket.on('username', (Username) => {
+  socket.on('username', (User) => {
     userMap.entrySeq().forEach((element) => {
-      const n = Username.localeCompare(element[1].username);
+      const n = User[1].localeCompare(element[1].email);
       if (n === 0) {
         fId = element[0];
         user = element[1];
@@ -161,7 +188,7 @@ io.on('connection', (socket) => {
     });
     if (user.initial === true) {
       user = {
-        initial: false, username: Username, score: 0, socketId: socket.id,
+        initial: false, username: User[0], score: 0, socketId: socket.id, email: User[0],
       };
       const ref = database.push(user);
       // eslint-disable-next-line no-unused-vars
@@ -175,6 +202,7 @@ io.on('connection', (socket) => {
     y: Math.floor(Math.random() * 500) + 50,
     playerId: socket.id,
     base_speed: 1,
+    playercreated: Date.now(),
     team: (student === true) ? 'red' : 'blue',
   };
   student = !student;
@@ -183,7 +211,9 @@ io.on('connection', (socket) => {
   // update all other players of the new player
   socket.broadcast.emit('newPlayer', players[socket.id]);
   socket.emit('keystoneLocation', keystone);
+  socket.emit('keystoneLocationtwo', keystonetwo);
   socket.emit('starLocation', star);
+  socket.emit('starLocationtwo', startwo);
   socket.emit('scoreUpdate', scores);
   // Also remove the socket from both the waiting and game lists (if it's in there)
   socket.on('disconnect', () => {
@@ -234,6 +264,14 @@ io.on('connection', (socket) => {
 
   // when a player moves, update the player data
   socket.on('playerMovement', (movementData) => {
+    clearTimeout(logoffTimer);
+    logoffTimer = setTimeout(() => {
+      if (isgame === true) {
+        console.log('loggedoutduetoinactivity');
+        socket.emit('kicked', { x: 1 });
+        socket.disconnect();
+      }
+    }, 60000);
     players[socket.id].x = movementData.x;
     players[socket.id].y = movementData.y;
     players[socket.id].rotation = movementData.rotation;
@@ -252,35 +290,39 @@ io.on('connection', (socket) => {
   });
 
   socket.on('starCollected', () => {
-    if (players[socket.id].team === 'red') {
-      scores.red += 10;
-    } else {
-      scores.blue += 10;
-    }
     scoreIncrease(fId, user);
-    star.x = Math.floor(Math.random() * 700) + 50;
-    star.y = Math.floor(Math.random() * 500) + 50;
+    star.x = Math.floor(Math.random() * 700 * 2) + 50;
+    star.y = Math.floor(Math.random() * 500 * 2) + 50;
     io.emit('starLocation', star);
-    io.emit('scoreUpdate', scores);
   });
 
-  socket.on('keystoneCollected', () => {
-    if (players[socket.id].team === 'red') {
-      scores.red += 100;
-    } else {
-      scores.blue += 100;
-    }
+  socket.on('starCollectedtwo', () => {
     scoreIncrease(fId, user);
-    keystone.x = Math.floor(Math.random() * 700) + 50;
-    keystone.y = Math.floor(Math.random() * 500) + 50;
+    startwo.x = Math.floor(Math.random() * 600 * 3) + 50;
+    startwo.y = Math.floor(Math.random() * 400 * 3) + 50;
+    io.emit('starLocationtwo', startwo);
+  });
+  socket.on('keystoneCollected', () => {
+    scoreIncrease(fId, user);
+    keystone.x = Math.floor(Math.random() * 700 * 2) + 50;
+    keystone.y = Math.floor(Math.random() * 500 * 2) + 50;
     io.emit('keystoneLocation', keystone);
-    io.emit('scoreUpdate', scores);
+  });
+  socket.on('keystoneCollectedtwo', () => {
+    scoreIncrease(fId, user);
+    keystonetwo.x = Math.floor(Math.random() * 600 * 3) + 50;
+    keystonetwo.y = Math.floor(Math.random() * 400 * 3) + 50;
+    io.emit('keystoneLocationtwo', keystonetwo);
   });
 
   socket.on('lasershot', (data) => {
     if (players[socket.id] !== undefined) {
       serverlasers.push(data);
     }
+  });
+
+  socket.on('leaderboarddata', (data) => {
+    console.log(data);
   });
 });
 
@@ -289,6 +331,7 @@ let emitLaserloc = (payload) => {
 };
 emitLaserloc = throttle(emitLaserloc, 25);
 
+/* Got help on how to simulate bullets serverside from this link https://code.tutsplus.com/tutorials/create-a-multiplayer-pirate-shooter-game-in-your-browser--cms-23311 */
 setInterval(() => {
   serverlasers.forEach((item, index) => {
     const speedX = Math.cos(item.rotation + Math.PI / 2) * item.laser_speed;
@@ -311,7 +354,7 @@ setInterval(() => {
   emitLaserloc(serverlasers);
 }, 20);
 
-let time = 0;
+let time = 180;
 let gamerestartin = 10;
 let interval = null;
 function startTimer(f, t) {
@@ -323,11 +366,11 @@ function stopTimer() {
 }
 
 const tick = () => {
-  time += 1;
+  time -= 1;
   io.emit('tick', time);
-  if (time >= 30) {
+  if (time <= 0) {
     stopTimer(interval);
-    time = 0;
+    time = 180;
     // Clear chat at the end of each round
     ChatMessages.clearChat().then((result) => {
       console.log('chat cleared');
