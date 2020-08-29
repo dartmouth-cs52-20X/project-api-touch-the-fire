@@ -196,14 +196,16 @@ io.on('connection', (socket) => {
     }
     console.log(fId);
   });
-  players[socket.id] = {
-    rotation: 0,
-    x: Math.floor(Math.random() * 700) + 50,
-    y: Math.floor(Math.random() * 500) + 50,
-    playerId: socket.id,
-    playercreated: Date.now(),
-    team: (student === true) ? 'red' : 'blue',
-  };
+  if (isgame === true) {
+    players[socket.id] = {
+      rotation: 0,
+      x: Math.floor(Math.random() * 700) + 50,
+      y: Math.floor(Math.random() * 500) + 50,
+      playerId: socket.id,
+      playercreated: Date.now().toString,
+      team: (student === true) ? 'red' : 'blue',
+    };
+  }
   student = !student;
   // send the players object to the new player
   socket.emit('currentPlayers', players);
