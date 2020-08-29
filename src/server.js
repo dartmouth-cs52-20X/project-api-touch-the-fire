@@ -296,7 +296,9 @@ setInterval(() => {
     Object.keys(players).forEach((key) => {
       if (item.shotfrom !== key) {
         if ((Math.hypot(players[key].x - item.x, players[key].y - item.y)) <= 30) {
-          io.emit('hit', { playerId: players[key].playerId, laserId: item.laserId, shooter_team: item.shooter_team });
+          io.emit('hit', {
+            playerId: players[key].playerId, laserId: item.laserId, shooter_team: item.shooter_team, laser_damage: item.laser_damage,
+          });
         }
       }
     });
