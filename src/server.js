@@ -188,7 +188,7 @@ io.on('connection', (socket) => {
   socket.on('disconnect', () => {
     delete players[socket.id];
     io.emit('disconnect', socket.id);
-    console.log('ser disconnected');
+    console.log('user disconnected');
     const game_index = game_players.indexOf(socket.id);
     const waiting_index = waiting_players.indexOf(socket.id);
     if (game_index !== -1) {
