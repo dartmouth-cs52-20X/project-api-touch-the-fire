@@ -86,8 +86,11 @@ app.get('/', (req, res) => {
 });
 
 // eslint-disable-next-line no-unused-vars
-function scoreIncrease(fId, user) {
-  user.score += 1;
+function winIncrease(fId, user, data) {
+  console.log(user.wins, data.winner);
+  user.wins += data.winner;
+  user.shots += data.bulletsfired;
+  user.dba += data.dba;
   database.child(fId).update(user);
   console.log('updated');
 }
@@ -175,7 +178,7 @@ io.on('connection', (socket) => {
   emitToOthers = throttle(emitToOthers, 25);
 
   let user = {
-    initial: true, username: '', score: -1, socketId: socket.id, email: '',
+    initial: true, username: '', wins: -1, socketId: socket.id, email: '', shots: -1, dba: -1,
   };
   let fId;
   socket.on('username', (User) => {
@@ -188,13 +191,30 @@ io.on('connection', (socket) => {
     });
     if (user.initial === true) {
       user = {
-        initial: false, username: User[0], score: 0, socketId: socket.id, email: User[0],
+        initial: false, username: User[0], wins: 0, socketId: socket.id, email: User[0], shots: 0, dba: 0,
       };
       const ref = database.push(user);
       // eslint-disable-next-line no-unused-vars
       fId = ref.key;
     }
-    console.log(fId);
+  });
+  socket.on('leaderboarddata', (data) => {
+    userMap.entrySeq().forEach((element) => {
+      const n = data.em.localeCompare(element[1].email);
+      if (n === 0) {
+        fId = element[0];
+        user = element[1];
+      }
+    });
+    if (user.initial === true) {
+      user = {
+        initial: false, username: data.user, wins: 0, socketId: socket.id, email: data.em, shots: 0, dba: 0,
+      };
+      const ref = database.push(user);
+      // eslint-disable-next-line no-unused-vars
+      fId = ref.key;
+    }
+    winIncrease(fId, user, data);
   });
   players[socket.id] = {
     rotation: 0,
@@ -314,9 +334,9 @@ io.on('connection', (socket) => {
     }
   });
 
-  socket.on('leaderboarddata', (data) => {
-    console.log(data);
-  });
+  // socket.on('leaderboarddata', (data) => {
+  //   console.log(data);
+  // });
 });
 
 let emitLaserloc = (payload) => {
@@ -347,7 +367,7 @@ setInterval(() => {
   emitLaserloc(serverlasers);
 }, 20);
 
-let time = 180;
+let time = 30;
 let gamerestartin = 10;
 let interval = null;
 function startTimer(f, t) {
@@ -363,7 +383,7 @@ const tick = () => {
   io.emit('tick', time);
   if (time <= 0) {
     stopTimer(interval);
-    time = 180;
+    time = 30;
     // Clear chat at the end of each round
     ChatMessages.clearChat().then((result) => {
       console.log('chat cleared');
