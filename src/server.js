@@ -31,9 +31,17 @@ const star = {
   x: Math.floor(Math.random() * 700) + 50,
   y: Math.floor(Math.random() * 500) + 50,
 };
+const startwo = {
+  x: Math.floor(Math.random() * 700 * 2) + 50,
+  y: Math.floor(Math.random() * 500 * 2) + 50,
+};
 const keystone = {
   x: Math.floor(Math.random() * 700) + 50,
   y: Math.floor(Math.random() * 500) + 50,
+};
+const keystonetwo = {
+  x: Math.floor(Math.random() * 700 * 2) + 50,
+  y: Math.floor(Math.random() * 500 * 2) + 50,
 };
 const scores = {
   blue: 0,
@@ -97,6 +105,14 @@ const pushChatMessages = () => {
 
 io.on('connection', (socket) => {
   console.log('a user connected');
+  let inactivecheck = null;
+  // eslint-disable-next-line no-unused-vars
+  inactivecheck = setTimeout(() => {
+    console.log('inactive kick');
+    socket.emit('kicked', { x: 1 });
+    socket.disconnect();
+  }, 10800000);
+
   let logoffTimer = null;
   let isgame = false;
   socket.on('isgame', () => {
@@ -194,7 +210,9 @@ io.on('connection', (socket) => {
   // update all other players of the new player
   socket.broadcast.emit('newPlayer', players[socket.id]);
   socket.emit('keystoneLocation', keystone);
+  socket.emit('keystoneLocationtwo', keystonetwo);
   socket.emit('starLocation', star);
+  socket.emit('starLocationtwo', startwo);
   socket.emit('scoreUpdate', scores);
   // Also remove the socket from both the waiting and game lists (if it's in there)
   socket.on('disconnect', () => {
@@ -276,11 +294,23 @@ io.on('connection', (socket) => {
     io.emit('starLocation', star);
   });
 
+  socket.on('starCollectedtwo', () => {
+    scoreIncrease(fId, user);
+    startwo.x = Math.floor(Math.random() * 600 * 3) + 50;
+    startwo.y = Math.floor(Math.random() * 400 * 3) + 50;
+    io.emit('starLocationtwo', startwo);
+  });
   socket.on('keystoneCollected', () => {
     scoreIncrease(fId, user);
     keystone.x = Math.floor(Math.random() * 700 * 2) + 50;
     keystone.y = Math.floor(Math.random() * 500 * 2) + 50;
     io.emit('keystoneLocation', keystone);
+  });
+  socket.on('keystoneCollectedtwo', () => {
+    scoreIncrease(fId, user);
+    keystonetwo.x = Math.floor(Math.random() * 600 * 3) + 50;
+    keystonetwo.y = Math.floor(Math.random() * 400 * 3) + 50;
+    io.emit('keystoneLocationtwo', keystonetwo);
   });
 
   socket.on('lasershot', (data) => {
