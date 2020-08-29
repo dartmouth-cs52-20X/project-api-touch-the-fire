@@ -287,14 +287,12 @@ io.on('connection', (socket) => {
   });
 
   socket.on('starCollected', () => {
-    scoreIncrease(fId, user);
     star.x = Math.floor(Math.random() * 700 * 2) + 50;
     star.y = Math.floor(Math.random() * 500 * 2) + 50;
     io.emit('starLocation', star);
   });
 
   socket.on('starCollectedtwo', () => {
-    scoreIncrease(fId, user);
     startwo.x = Math.floor(Math.random() * 600 * 3) + 50;
     startwo.y = Math.floor(Math.random() * 400 * 3) + 50;
     io.emit('starLocationtwo', startwo);
