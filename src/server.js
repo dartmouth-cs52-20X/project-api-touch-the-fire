@@ -262,29 +262,17 @@ io.on('connection', (socket) => {
   });
 
   socket.on('starCollected', () => {
-    if (players[socket.id].team === 'red') {
-      scores.red += 10;
-    } else {
-      scores.blue += 10;
-    }
     scoreIncrease(fId, user);
-    star.x = Math.floor(Math.random() * 700) + 50;
-    star.y = Math.floor(Math.random() * 500) + 50;
+    star.x = Math.floor(Math.random() * 700 * 2) + 50;
+    star.y = Math.floor(Math.random() * 500 * 2) + 50;
     io.emit('starLocation', star);
-    io.emit('scoreUpdate', scores);
   });
 
   socket.on('keystoneCollected', () => {
-    if (players[socket.id].team === 'red') {
-      scores.red += 100;
-    } else {
-      scores.blue += 100;
-    }
     scoreIncrease(fId, user);
-    keystone.x = Math.floor(Math.random() * 700) + 50;
-    keystone.y = Math.floor(Math.random() * 500) + 50;
+    keystone.x = Math.floor(Math.random() * 700 * 2) + 50;
+    keystone.y = Math.floor(Math.random() * 500 * 2) + 50;
     io.emit('keystoneLocation', keystone);
-    io.emit('scoreUpdate', scores);
   });
 
   socket.on('lasershot', (data) => {
@@ -303,6 +291,7 @@ let emitLaserloc = (payload) => {
 };
 emitLaserloc = throttle(emitLaserloc, 25);
 
+/* Got help on how to simulate bullets serverside from this link https://code.tutsplus.com/tutorials/create-a-multiplayer-pirate-shooter-game-in-your-browser--cms-23311 */
 setInterval(() => {
   serverlasers.forEach((item, index) => {
     const speedX = Math.cos(item.rotation + Math.PI / 2) * item.laser_speed;
@@ -325,7 +314,7 @@ setInterval(() => {
   emitLaserloc(serverlasers);
 }, 20);
 
-let time = 0;
+let time = 180;
 let gamerestartin = 10;
 let interval = null;
 function startTimer(f, t) {
@@ -337,11 +326,11 @@ function stopTimer() {
 }
 
 const tick = () => {
-  time += 1;
+  time -= 1;
   io.emit('tick', time);
-  if (time >= 30) {
+  if (time <= 0) {
     stopTimer(interval);
-    time = 0;
+    time = 180;
     // Clear chat at the end of each round
     ChatMessages.clearChat().then((result) => {
       console.log('chat cleared');
