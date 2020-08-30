@@ -169,6 +169,11 @@ io.on('connection', (socket) => {
         const curr_socket_id = waiting_players[i];
         io.to(curr_socket_id).emit('current game size', game_players.length);
       }
+      // Remove a player's chat messages when they leave the game
+      ChatMessages.clearChat(socket.id).then((result) => {
+        console.log(`chat messages for socket ${socket.id} cleared`);
+        pushChatMessages();
+      });
     }
   });
 
@@ -253,13 +258,17 @@ io.on('connection', (socket) => {
       const curr_socket_id = waiting_players[i];
       io.to(curr_socket_id).emit('current game size', game_players.length);
     }
+    // Remove chat message for this socket
+    ChatMessages.clearChat(socket.id).then((result) => {
+      console.log(`chat messages for socket ${socket.id} cleared`);
+      pushChatMessages();
+    });
   });
 
   socket.on('forcedisconnect', () => {
     socket.disconnect();
   });
   // Handling chat
-  // For now, chat messages will carry over from game to game --> need to create/call a method to delete all chatMessages from game/round over
   // Handle initial request from client for chats
   socket.on('getInitialChats', () => {
     ChatMessages.getChatMessages().then((result) => {
@@ -268,10 +277,10 @@ io.on('connection', (socket) => {
     });
   });
   // event listener to handle creating a new chat message
-  socket.on('createChatMessage', (fields) => {
+  socket.on('createChatMessage', (fields, socket_id) => {
     console.log('chat received');
     // Call the createChatMessage function
-    ChatMessages.createChatMessage(fields).then((result) => {
+    ChatMessages.createChatMessage(fields, socket_id).then((result) => {
       // Then push all the chatMessages (including the newly created one) to all players
       pushChatMessages();
     }).catch((error) => {
@@ -384,13 +393,6 @@ const tick = () => {
   if (time <= 0) {
     stopTimer(interval);
     time = 180;
-    // Clear chat at the end of each round
-    ChatMessages.clearChat().then((result) => {
-      console.log('chat cleared');
-      pushChatMessages();
-    }).catch((error) => {
-      console.log('error');
-    });
     if (scores.red > scores.blue) {
       io.emit('gameover', { text: `Red won ${scores.red}:${scores.blue} `, winner: 'red' });
     } else if (scores.red === scores.blue) {
