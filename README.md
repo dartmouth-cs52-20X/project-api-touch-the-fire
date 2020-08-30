@@ -1,18 +1,31 @@
 # Touch the Fire
-![Team Photo](Insert a Team Photo URL here)
+![Team Photo](https://i.imgur.com/VrUfsHW.png)
 
-Touch the Fire is a WASD multiplayer game with two teams of 3-5 players (students and defenders). The goal of the students is to get one player to touch the fire, and the goal of the defenders is to prevent anyone from touching the fire. 
+Touch the Fire is a WASD multiplayer game with two teams of 3 players. The goal of each team is to touch the fire for longer than the other team.  Each player is able to shoot projectiles to send opponents back to the edges of the map.  The map is scattered with DBA, which can be used to buy a variety of powerups.  Powerups include:
+* More bullet damage
+* Higher maximum health
+* More DBA per hit
+* Expanded mini-map
 
-The game consists of five 60 second rounds in which the students attempt to reach the fire. The rounds can end in 2 ways:
+The map also contains Keystone powerups, which provide a little DBA and restore health.
 
-* The time limit is reached
-* The students reach the fire
+There is a chat so that players can communicate with one another during the game.  A leaderboard page keeps track of players' stats.  These include:
+* wins
+* DBA collected
+* shots fired
 
-Teams switch sides after each round. If the students did reach the fire in X seconds, the new students now have a time limit of X seconds to reach the fire. If they are successful, they score a point. Otherwise, the opposing team scores a point.
+The game allows for sign-ups and sign-ins with username, email, and password.  There is also an option to sign-in as a guest.
 
-If neither team reaches the fire, a sudden death round occurs in which two random people from each team compete head-to-head to score a point.
+The game consists of a 3 minute round in which each team attempts to control the fire. The winning team is the one who was touching the fire the longest.
 
-The first team to score 3 points wins the game.
+## Game Instructions
+Basic Movement:
+* Forward: W, Left: A, Right: D, Back: S
+Advanced Movement:
+* Rotate Left: J, Rotate Right: L, Forward: I, Back: K
+Other Controls:
+* Shoot: SPACE
+* Mute Music: M
 
 ## Architecture
 
@@ -24,10 +37,12 @@ The first team to score 3 points wins the game.
     * Used for compilation
 * Phaser.js
     * Library to handle game function
+* Combination of MongoDB and Firebase
+    * MongoDB used to store the chat data, Firebase used for authentication and storing leaderboard data.
 
 ## Setup
 
-This project requires both the code in this repo and the [client repo](https://github.com/dartmouth-cs52-20X/project-touch-the-fire)
+This project requires both the code in this repo and the [client repo.](https://github.com/dartmouth-cs52-20X/project-touch-the-fire)
 
 ### Client Repo
 
@@ -41,6 +56,8 @@ The game is hosted locally on port 8080.
 ### Server Repo
 
 Find our dev server [here.](https://touch-the-fire-api.herokuapp.com/)
+
+The game is running on the above server.  The chat and queueing features are running on a clone of the same server [here.](https://touchthefirechat.herokuapp.com/)
 
 The server is hosted locally on port 9090.
 
@@ -59,6 +76,10 @@ The server is hosted through Heroku.
 
 - `git push origin master`
 
+## Gifs
+
+You can find gifs of our site in action in the [home wiki page](https://github.com/dartmouth-cs52-20X/project-touch-the-fire/wiki) of the client repo.
+
 ## Authors
 
 * Arjun Miklos
@@ -70,5 +91,9 @@ The server is hosted through Heroku.
 
 ## Acknowledgments
 
+Thanks to our TAs and Tim for helping out on the project.
+
+We want to thank our mothers in addition to Steve Jobs for the inspiration and love they have given us.
+
 ### Testing
-heroku deploy test
+In order to test locally, on line 61 of project-touch-the-fire/src/scenes/gamescene.js/, make sure that the socket is pointed towards http://localhost:9090 (which it already is).  Then, you just need to run `yarn start` for the client and `yarn dev` for the server.  The site will be running at http://localhost:8080, and the server will be running at http://localhost:9090.
