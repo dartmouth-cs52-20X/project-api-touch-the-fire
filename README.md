@@ -96,4 +96,4 @@ Thanks to our TAs and Tim for helping out on the project.
 We want to thank our mothers in addition to Steve Jobs for the inspiration and love they have given us.
 
 ### Testing
-In order to test locally, on line 61 of project-touch-the-fire/src/scenes/gamescene.js/, make sure that the socket is pointed towards http://localhost:9090 (which it already is).  Then, you just need to run `yarn start` for the client and `yarn dev` for the server.  The site will be running at http://localhost:8080, and the server will be running at http://localhost:9090.
+In order to test locally, on line 61 of project-touch-the-fire/src/scenes/gamescene.js/, make sure that the socket is pointed towards http://localhost:9090 (which it already is).  Then, you just need to run `yarn start` for the client and `yarn start` for the server.  The site will be running at http://localhost:8080, and the server will be running at http://localhost:9090.
